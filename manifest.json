@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "FlowVoc AI - English Vocabulary Helper",
+  "version": "1.0.0",
+  "description": "Select any word while reading, get English + Sinhala meaning from your local LLM, and save it for spaced repetition review.",
+  "permissions": [
+    "storage",
+    "unlimitedStorage"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1:1234/*",
+    "http://localhost:1234/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Open FlowVoc Review",
+    "default_popup": "review.html"
+  },
+  "options_page": "options.html"
+}

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FlowVoc Review</title>
+  <link rel="stylesheet" href="review.css">
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">FlowVoc AI</p>
+        <h1>Vocabulary Review</h1>
+        <p class="muted">Review only the words that your memory is about to forget.</p>
+      </div>
+      <button id="optionsBtn" class="ghost">Settings</button>
+    </header>
+
+    <section class="stats" id="stats"></section>
+
+    <section class="toolbar">
+      <input id="searchInput" type="search" placeholder="Search word, meaning, Sinhala...">
+      <select id="filterSelect" title="Filter words">
+        <option value="due">Due now</option>
+        <option value="all">All words</option>
+        <option value="new">New words</option>
+        <option value="mastered">Strong memory</option>
+      </select>
+    </section>
+
+    <section id="reviewArea" class="review-area"></section>
+
+    <section class="footer-actions">
+      <button id="exportBtn" class="ghost">Export backup</button>
+      <label class="ghost file-label">
+        Import backup
+        <input id="importFile" type="file" accept="application/json">
+      </label>
+      <button id="clearDoneBtn" class="ghost danger">Hide done today</button>
+    </section>
+  </main>
+
+  <script src="review.js"></script>
+</body>
+</html>
