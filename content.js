@@ -228,7 +228,14 @@
 
     card.querySelector('.flowvoc-close').addEventListener('click', () => card.style.display = 'none');
     card.querySelector('[data-action="save"]').addEventListener('click', saveCurrentWord);
-    card.querySelector('[data-action="open-review"]').addEventListener('click', () => chrome.runtime.sendMessage({ type: 'OPEN_REVIEW' }).catch(() => window.open(chrome.runtime.getURL('review.html'))));
+    card.querySelector('[data-action="open-review"]').addEventListener('click', async () => {
+      try {
+        const response = await chrome.runtime.sendMessage({ type: 'OPEN_REVIEW' });
+        if (!response?.ok) throw new Error(response?.error || 'Cannot open review page.');
+      } catch (_) {
+        window.open(chrome.runtime.getURL('review.html'));
+      }
+    });
   }
 
   async function saveCurrentWord() {
