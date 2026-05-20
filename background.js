@@ -2,10 +2,14 @@ const DEFAULT_SETTINGS = {
   endpoint: 'http://127.0.0.1:1234/v1/chat/completions',
   model: 'google/gemma-4-e4b',
   temperature: 0.2,
-  maxTokens: 550,
+  maxTokens: 300,
   sinhalaStyle: 'simple',
   autoAddContext: true
 };
+
+const LOOKUP_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7;
+const lookupCache = new Map();
+const inFlightLookups = new Map();
 
 chrome.runtime.onInstalled.addListener(async () => {
   const { flowVocSettings } = await chrome.storage.local.get('flowVocSettings');
@@ -38,12 +42,33 @@ async function getSettings() {
 async function lookupWord({ word, context = '' }) {
   const settings = await getSettings();
   const cleanWord = String(word || '').trim().replace(/\s+/g, ' ');
-  const cleanContext = String(context || '').trim().slice(0, 1200);
+  const cleanContext = String(context || '').trim().slice(0, 320);
 
   if (!cleanWord) throw new Error('No word selected.');
 
-  const prompt = buildPrompt(cleanWord, cleanContext, settings.sinhalaStyle);
+  const cacheKey = buildCacheKey(cleanWord, cleanContext, settings);
+  const cached = lookupCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
 
+  if (inFlightLookups.has(cacheKey)) {
+    return inFlightLookups.get(cacheKey);
+  }
+
+  const prompt = buildPrompt(cleanWord, cleanContext, settings.sinhalaStyle);
+  const lookupPromise = runLookupRequest(cleanWord, prompt, settings)
+    .then((result) => {
+      lookupCache.set(cacheKey, { value: result, expiresAt: Date.now() + LOOKUP_CACHE_TTL_MS });
+      return result;
+    })
+    .finally(() => inFlightLookups.delete(cacheKey));
+
+  inFlightLookups.set(cacheKey, lookupPromise);
+  return lookupPromise;
+}
+
+async function runLookupRequest(cleanWord, prompt, settings) {
   const response = await fetch(settings.endpoint, {
     method: 'POST',
     headers: {
@@ -53,7 +78,7 @@ async function lookupWord({ word, context = '' }) {
     body: JSON.stringify({
       model: settings.model,
       temperature: Number(settings.temperature ?? 0.2),
-      max_tokens: Number(settings.maxTokens ?? 550),
+      max_tokens: Number(settings.maxTokens ?? 300),
       messages: [
         {
           role: 'system',
@@ -76,6 +101,15 @@ async function lookupWord({ word, context = '' }) {
 
 function buildPrompt(word, context, sinhalaStyle) {
   return `Explain this English word or short phrase for a Sinhala-speaking learner.\n\nSelected text: "${escapePrompt(word)}"\nReading context: "${escapePrompt(context)}"\n\nReturn exactly this JSON shape. Keep every field short and practical. Sinhala must be natural and simple.\n{\n  "word": "selected word",\n  "baseForm": "dictionary form",\n  "partOfSpeech": "noun | verb | adjective | adverb | phrase | other",\n  "cefrLevel": "A1 | A2 | B1 | B2 | C1 | C2 | unknown",\n  "englishMeaning": "one clear simple English meaning based on context",\n  "sinhalaMeaning": "${sinhalaStyle === 'simple' ? 'simple Sinhala meaning' : 'Sinhala meaning'}",\n  "exampleEnglish": "one short natural English sentence",\n  "exampleSinhala": "Sinhala translation of the example",\n  "synonyms": ["1 to 3 simple synonyms"],\n  "opposite": "one common opposite or empty string",\n  "memoryTip": "tiny memory hook in English or Sinhala"\n}`;
+}
+
+function buildCacheKey(word, context, settings) {
+  return JSON.stringify({
+    word: word.toLowerCase(),
+    context: context.toLowerCase(),
+    model: settings.model,
+    style: settings.sinhalaStyle
+  });
 }
 
 function normalizeResult(selectedWord, raw) {

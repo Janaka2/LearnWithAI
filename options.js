@@ -2,7 +2,7 @@ const DEFAULT_SETTINGS = {
   endpoint: 'http://127.0.0.1:1234/v1/chat/completions',
   model: 'google/gemma-4-e4b',
   temperature: 0.2,
-  maxTokens: 550,
+  maxTokens: 300,
   sinhalaStyle: 'simple'
 };
 
