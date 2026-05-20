@@ -32,6 +32,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch((error) => sendResponse({ ok: false, error: humanError(error) }));
     return true;
   }
+
+  if (message?.type === 'OPEN_REVIEW') {
+    chrome.tabs.create({ url: chrome.runtime.getURL('review.html') })
+      .then(() => sendResponse({ ok: true }))
+      .catch((error) => sendResponse({ ok: false, error: humanError(error) }));
+    return true;
+  }
 });
 
 async function getSettings() {
